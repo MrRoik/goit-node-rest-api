@@ -10,7 +10,7 @@ import httpError from "../helpers/HttpError.js";
 export const getAllContacts = async (req, res, next) => {
   try {
     const result = await listContacts();
-    res.status(201).json(result);
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
@@ -46,7 +46,7 @@ export const createContact = async (req, res, next) => {
   const { name, email, phone } = req.body;
   try {
     const result = await addContact(name, email, phone);
-    res.status(200).json(result);
+    res.status(201).json(result);
   } catch (error) {
     next(error);
   }
