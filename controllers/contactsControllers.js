@@ -1,4 +1,4 @@
-import httpError from "../helpers/HttpError.js";
+import HttpError from "../helpers/HttpError.js";
 import { Contact } from "../models/contactModals.js";
 
 export const getAllContacts = async (req, res, next) => {
@@ -14,7 +14,7 @@ export const getAllContacts = async (req, res, next) => {
     const contacts = await Contact.find(filterContact);
     res.status(200).json(contacts);
     if (!contacts) {
-      throw httpError(401, "Bad Request");
+      throw HttpError(401, "Bad Request");
     }
   } catch (error) {
     next(error);
@@ -27,7 +27,7 @@ export const getOneContact = async (req, res, next) => {
   try {
     const contacts = await Contact.findById({ _id: id, owner });
     if (!contacts) {
-      throw httpError(404, "Not found");
+      throw HttpError(404, "Not found");
     }
     res.status(200).json(contacts);
   } catch (error) {
@@ -39,9 +39,9 @@ export const deleteContact = async (req, res, next) => {
   const { id } = req.params;
   const { _id: owner } = req.user;
   try {
-    const contacts = await Contact.findByIdAndDelete({ _id: id, owner });
+    const contacts = await Contact.findOneAndDelete({ _id: id, owner });
     if (!contacts) {
-      throw httpError(404, "Not found");
+      throw HttpError(404, "Not found");
     }
     res.status(200).json(contacts);
   } catch (error) {
@@ -65,13 +65,13 @@ export const updateContact = async (req, res, next) => {
   const { name, email, phone, favorite } = req.body;
   const { _id: owner } = req.user;
   try {
-    const updatedContact = await Contact.findByIdAndUpdate(
+    const updatedContact = await Contact.findOneAndUpdate(
       { _id: id, owner },
       { name, email, phone, favorite },
       { new: true }
     );
     if (!updatedContact) {
-      throw httpError(404, "Not found");
+      throw HttpError(404, "Not found");
     }
     res.status(200).json(updatedContact);
   } catch (error) {
@@ -84,7 +84,7 @@ export const updateStatusContact = async (req, res, next) => {
   const favorite = req.body;
   const { _id: owner } = req.user;
   try {
-    const updatedStatusContact = await Contact.findByIdAndUpdate(
+    const updatedStatusContact = await Contact.findOneAndUpdate(
       { _id: id, owner },
       favorite,
       {
@@ -92,7 +92,7 @@ export const updateStatusContact = async (req, res, next) => {
       }
     );
     if (!updatedStatusContact) {
-      throw httpError(404, "Not found");
+      throw HttpError(404, "Not found");
     }
     res.status(200).json(updatedStatusContact);
   } catch (error) {
