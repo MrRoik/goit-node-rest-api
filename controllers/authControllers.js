@@ -1,7 +1,7 @@
 import HttpError from "../helpers/HttpError.js";
 import bcrypt from "bcrypt";
 import { User } from "../models/userModals.js";
-import { checkToken, registerToken } from "../services/jwtServices.js";
+import { registerToken } from "../services/jwtServices.js";
 
 export const registerUser = async (req, res, next) => {
   const { email, password, subscription } = req.body;
@@ -60,14 +60,24 @@ export const loginUser = async (req, res, next) => {
   }
 };
 
-export const getCurrentUser = async (req, res) => {
+export const getCurrentUser = async (req, res, next) => {
   try {
-    const [{ email, subscription }] = await User.findById(req.user.id);
+    const { email, subscription } = await User.findById(req.user.id);
 
     res.status(200).json({
       email,
       subscription,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logoutUser = async (req, res, next) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { token: null });
+
+    res.status(204).end();
   } catch (error) {
     next(error);
   }

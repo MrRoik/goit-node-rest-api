@@ -17,23 +17,19 @@ import isValidateId from "../middlewares/validateId.js";
 import { protect } from "../middlewares/authMiddlewares.js";
 
 const contactsRouter = express.Router();
+contactsRouter.use(protect);
 
-contactsRouter.get("/", protect, getAllContacts);
+contactsRouter.get("/", getAllContacts);
 
-contactsRouter.get("/:id", protect, isValidateId, getOneContact);
+contactsRouter.get("/:id", isValidateId, getOneContact);
 
-contactsRouter.delete("/:id", protect, isValidateId, deleteContact);
+contactsRouter.delete("/:id", isValidateId, deleteContact);
 
-contactsRouter.post(
-  "/",
-  protect,
-  validateBody(createContactSchema),
-  createContact
-);
+contactsRouter.post("/", validateBody(createContactSchema), createContact);
 
 contactsRouter.put(
   "/:id",
-  protect,
+
   isValidateId,
   validateBody(updateContactSchema),
   updateContact
@@ -41,7 +37,7 @@ contactsRouter.put(
 
 contactsRouter.patch(
   "/:id/favorite",
-  protect,
+
   isValidateId,
   validateBody(updateStatusContactSchema),
   updateStatusContact
