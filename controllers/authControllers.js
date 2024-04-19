@@ -48,6 +48,8 @@ export const loginUser = async (req, res, next) => {
 
     const token = registerToken(user.id);
 
+    await User.findByIdAndUpdate(user.id, { token });
+
     res.status(200).json({
       token,
       user: {
@@ -77,9 +79,7 @@ export const logoutUser = async (req, res, next) => {
   try {
     await User.findByIdAndUpdate(req.user.id, { token: null });
 
-    res.status(204).json({
-      message: "Not authorized",
-    });
+    res.sendStatus(204);
   } catch (error) {
     next(error);
   }

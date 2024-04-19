@@ -12,7 +12,8 @@ export const protect = async (req, res, next) => {
     if (!userId) throw HttpError(401, "Unauthorized..");
 
     const currentUser = await User.findById(userId);
-    if (!currentUser) throw HttpError(401, "Unauthorized..");
+    if (!currentUser || !currentUser.token || currentUser.token !== token)
+      throw HttpError(401, "Unauthorized..");
 
     req.user = currentUser;
 
