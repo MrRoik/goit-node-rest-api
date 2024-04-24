@@ -18,7 +18,7 @@ export const registerUser = async (req, res, next) => {
     }
 
     const emailHash = crypto.createHash("md5").update(email).digest("hex");
-    const avatarURL = `https:gravatar.com/avatar/${emailHash}.jpg?d=robohash`;
+    const avatarURL = `avatar/${emailHash}.jpg?d=robohash`;
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
