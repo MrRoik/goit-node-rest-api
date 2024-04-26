@@ -7,6 +7,7 @@ import {
   registerUser,
   logoutUser,
   uploadUserAvatar,
+  verifyUser,
 } from "../controllers/authControllers.js";
 import { protect } from "../middlewares/authMiddlewares.js";
 import { uploadAvatar } from "../middlewares/userMiddlewares.js";
@@ -18,5 +19,6 @@ authRouter.post("/login", validateBody(loginSchema), loginUser);
 authRouter.post("/logout", protect, logoutUser);
 authRouter.get("/current", protect, getCurrentUser);
 authRouter.patch("/avatars", protect, uploadAvatar, uploadUserAvatar);
+authRouter.get("/verify/:verificationToken", verifyUser);
 
 export default authRouter;

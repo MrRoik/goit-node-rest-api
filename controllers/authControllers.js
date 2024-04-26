@@ -8,6 +8,12 @@ import { registerToken } from "../services/jwtServices.js";
 import Jimp from "jimp";
 import { v4 } from "uuid";
 import gravatar from "gravatar";
+import dotenv from "dotenv";
+import sendEmail from "../helpers/sendEmail.js";
+
+dotenv.config();
+
+const { HOST_URL } = process.env;
 
 export const registerUser = async (req, res, next) => {
   const { email, password, subscription } = req.body;
@@ -24,11 +30,22 @@ export const registerUser = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    const verificationToken = v4();
+
+    const verifyEmail = {
+      to: email,
+      subject: "Verify email",
+      html: `<a target="_blank" href ="${HOST_URL}/api/users/verify/${verificationToken}"> Verify your email please!</a>`,
+    };
+
+    await sendEmail(verifyEmail);
+
     const newUser = await User.create({
       email,
       password: passwordHash,
       subscription,
       avatarURL,
+      verificationToken,
     });
 
     res.status(201).json({
@@ -42,6 +59,27 @@ export const registerUser = async (req, res, next) => {
   }
 };
 
+export const verifyUser = async (req, res, next) => {
+  const { verificationToken } = req.params;
+
+  try {
+    const user = await User.findOne({ verificationToken });
+
+    if (!user) {
+      throw HttpError(404, "User not found");
+    }
+
+    await User.findByIdAndUpdate(user.id, {
+      verificationToken: null,
+      verify: true,
+    });
+
+    res.status(200).json({ message: "Verification successful" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const loginUser = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -49,6 +87,10 @@ export const loginUser = async (req, res, next) => {
     const user = await User.findOne({ email });
     if (!user) {
       throw HttpError(401, "Email or password is wrong");
+    }
+
+    if (!user.verify) {
+      throw HttpError(404, "User not found");
     }
 
     const passwordIsValid = await bcrypt.compare(password, user.password);
