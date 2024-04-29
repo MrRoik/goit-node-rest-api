@@ -9,11 +9,13 @@ import Jimp from "jimp";
 import { v4 } from "uuid";
 import gravatar from "gravatar";
 import dotenv from "dotenv";
-import sendEmail from "../helpers/sendEmail.js";
+//import sendEmail from "../helpers/sendEmail.js";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
-const { HOST_URL } = process.env;
+const { HOST_URL, SEND_HOST, SEND_EMAIL, META_PASSWORD, SEND_TO_EMAIL } =
+  process.env;
 
 export const registerUser = async (req, res, next) => {
   const { email, password, subscription } = req.body;
@@ -32,13 +34,35 @@ export const registerUser = async (req, res, next) => {
 
     const verificationToken = v4();
 
-    const verifyEmail = {
+    /*const verifyEmail = {
       to: email,
       subject: "Verify email",
       html: `<a target="_blank" href ="${HOST_URL}/api/users/verify/${verificationToken}"> Verify your email please!</a>`,
     };
 
-    await sendEmail(verifyEmail);
+    await sendEmail(verifyEmail);*/
+
+    const config = {
+      host: SEND_HOST,
+      port: 465,
+      secure: true,
+      auth: {
+        user: SEND_EMAIL,
+        pass: META_PASSWORD,
+      },
+    };
+    const transporter = nodemailer.createTransport(config);
+    const verifyEmail = {
+      from: SEND_EMAIL,
+      to: SEND_TO_EMAIL,
+      subject: "Verify email",
+      html: `<a target="_blank" href ="${HOST_URL}/api/users/verify/${verificationToken}"> Verify your email please!</a>`,
+    };
+
+    await transporter
+      .sendMail(verifyEmail)
+      .then((info) => console.log(info))
+      .catch((err) => console.log(err));
 
     const newUser = await User.create({
       email,
@@ -69,10 +93,14 @@ export const verifyUser = async (req, res, next) => {
       throw HttpError(404, "User not found");
     }
 
-    await User.findByIdAndUpdate(user.id, {
-      verificationToken: null,
-      verify: true,
-    });
+    await User.findByIdAndUpdate(
+      user.id,
+      {
+        verificationToken: "",
+        verify: true,
+      },
+      { new: true }
+    );
 
     res.status(200).json({ message: "Verification successful" });
   } catch (error) {
@@ -90,7 +118,10 @@ export const loginUser = async (req, res, next) => {
     }
 
     if (!user.verify) {
-      throw HttpError(404, "User not found");
+      throw HttpError(
+        401,
+        "Your email has not been verified. Please click on the link sent to you by email"
+      );
     }
 
     const passwordIsValid = await bcrypt.compare(password, user.password);
@@ -100,6 +131,8 @@ export const loginUser = async (req, res, next) => {
 
     const token = registerToken(user.id);
 
+    await User.findByIdAndUpdate(user._id, { token }, { new: true });
+
     res.status(200).json({
       token,
       user: {
@@ -107,6 +140,50 @@ export const loginUser = async (req, res, next) => {
         subscription: user.subscription,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyNewEmailSend = async (req, res, next) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      throw HttpError(404, "User not found");
+    }
+
+    if (user.verify) {
+      throw HttpError(400, "Verification has already been passed");
+    }
+
+    const verificationToken = user.verificationToken;
+
+    const config = {
+      host: SEND_HOST,
+      port: 465,
+      secure: true,
+      auth: {
+        user: SEND_EMAIL,
+        pass: META_PASSWORD,
+      },
+    };
+    const transporter = nodemailer.createTransport(config);
+    const verifyEmail = {
+      from: SEND_EMAIL,
+      to: SEND_TO_EMAIL,
+      subject: "Verify email",
+      html: `<a target="_blank" href ="${HOST_URL}/api/users/verify/${verificationToken}"> Verify your email please!</a>`,
+    };
+
+    await transporter
+      .sendMail(verifyEmail)
+      .then((info) => console.log(info))
+      .catch((err) => console.log(err));
+
+    res.json({ message: "Verification email sent" });
   } catch (error) {
     next(error);
   }
@@ -127,7 +204,7 @@ export const getCurrentUser = async (req, res, next) => {
 
 export const logoutUser = async (req, res, next) => {
   try {
-    await User.findByIdAndUpdate(req.user.id, { token: null });
+    await User.findByIdAndUpdate(req.user.id, { token: "" });
 
     res.status(204).json({
       message: "Not authorized",
